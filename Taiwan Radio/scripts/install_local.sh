@@ -5,10 +5,19 @@ set -euo pipefail
 PROJECT_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 PROJECT_PATH="$PROJECT_ROOT/Taiwan Radio.xcodeproj"
 SCHEME="Taiwan Radio"
-DERIVED_DATA_PATH="$PROJECT_ROOT/.derived-data"
 APP_NAME="Taiwan Radio.app"
-BUILD_APP_PATH="$DERIVED_DATA_PATH/Build/Products/Release/$APP_NAME"
 INSTALL_PATH="/Applications/$APP_NAME"
+DERIVED_DATA_PATH="$(mktemp -d "${TMPDIR:-/tmp}/taiwan-radio-build.XXXXXX")"
+BUILD_APP_PATH="$DERIVED_DATA_PATH/Build/Products/Release/$APP_NAME"
+
+cleanup() {
+  rm -rf "$DERIVED_DATA_PATH"
+}
+
+trap cleanup EXIT
+
+echo "Using derived data at:"
+echo "  $DERIVED_DATA_PATH"
 
 echo "Building $SCHEME (Release)..."
 xcodebuild \

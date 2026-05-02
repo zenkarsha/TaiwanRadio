@@ -165,6 +165,25 @@ struct Taiwan_RadioTests {
         #expect(service.scheduledPlaySettings.isEnabled == false)
     }
 
+    @Test func 重開後定時播放設定在電台載入前仍會保留() {
+        let defaults = makeDefaults(testName: #function)
+        let station = makeStation(id: "alarm", name: "Alarm", votes: 99)
+        let persistedScheduleService = ScheduleService(defaults: defaults)
+
+        persistedScheduleService.updateScheduledPlayStation(station)
+        persistedScheduleService.updateScheduledPlayEnabled(true)
+
+        let restoredViewModel = RadioViewModel(
+            defaults: defaults,
+            playerService: PlayerService(enableObservers: false),
+            scheduleService: ScheduleService(defaults: defaults),
+            enableRuntimeObservers: false
+        )
+
+        #expect(restoredViewModel.scheduledPlaySettings.stationID == station.id)
+        #expect(restoredViewModel.scheduledPlaySettings.isEnabled == true)
+    }
+
     @Test func 電台串流來源只保留有效且去重的http網址() {
         let station = RadioStation(
             stationUUID: "stream-test",

@@ -31,7 +31,6 @@ final class RadioViewModel: ObservableObject {
             observeSchedules()
         }
         libraryStore.enforceSelectedSectionAvailability(hasFavorites: hasFavorites, hasRecentStations: hasRecentStations)
-        self.scheduleService.sanitizeSchedules(using: stations)
     }
 
     var selectedSection: StationSection {

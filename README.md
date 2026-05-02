@@ -13,6 +13,7 @@ macOS 廣播播放器，專門抓台灣電台清單並直接播放串流。
 - 熱門電台
 - 每日定時播放
 - 每日定時停止播放
+- 定時切換電台功能，可選擇星期
 
 資料來源使用 [Radio Browser](https://www.radio-browser.info/) API
 
@@ -70,22 +71,46 @@ repo 內有一支安裝腳本，會：
 ## 專案結構
 
 ```text
-Taiwan Radio/
+.
+├── README.md
+├── screenshot.png
 ├── Taiwan Radio/
-│   ├── Taiwan_RadioApp.swift
-│   ├── ContentView.swift
-│   ├── ContentViewComponents.swift
-│   ├── StationRow.swift
-│   ├── SettingsView.swift
-│   ├── RadioViewModel.swift
-│   ├── RadioModels.swift
-│   ├── StationService.swift
-│   ├── PlayerService.swift
-│   ├── ScheduleService.swift
-│   └── LibraryStore.swift
-├── Taiwan RadioTests/
-├── Taiwan RadioUITests/
-└── scripts/
+│   ├── Taiwan Radio.xcodeproj/
+│   ├── Taiwan Radio-Info.plist
+│   ├── Taiwan Radio/
+│   │   ├── Taiwan_RadioApp.swift
+│   │   ├── Taiwan_Radio.entitlements
+│   │   ├── Assets.xcassets/
+│   │   │   ├── AccentColor.colorset/
+│   │   │   └── AppIcon.appiconset/
+│   │   ├── Components/
+│   │   │   ├── ContentViewComponents.swift
+│   │   │   └── StationRow.swift
+│   │   ├── Models/
+│   │   │   ├── RadioModels.swift
+│   │   │   └── RadioViewModel.swift
+│   │   ├── Services/
+│   │   │   ├── LibraryStore.swift
+│   │   │   ├── PlayerService.swift
+│   │   │   ├── ScheduleService.swift
+│   │   │   └── StationService.swift
+│   │   ├── Utilities/
+│   │   │   └── StringOptional+NilIfBlank.swift
+│   │   └── Views/
+│   │       ├── ContentView.swift
+│   │       ├── ContentView+Preview.swift
+│   │       └── SettingsView.swift
+│   ├── Taiwan RadioTests/
+│   │   └── Taiwan_RadioTests.swift
+│   ├── Taiwan RadioUITests/
+│   │   ├── Taiwan_RadioUITests.swift
+│   │   └── Taiwan_RadioUITestsLaunchTests.swift
+│   └── scripts/
+│       └── install_local.sh
+└── Taiwan Radio-icon/
+    ├── v1/
+    ├── v2/
+    └── v3/
 ```
 
 ## License

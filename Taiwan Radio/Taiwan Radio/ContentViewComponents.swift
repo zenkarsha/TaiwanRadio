@@ -144,16 +144,32 @@ struct PlayerBarView: View {
 
             Spacer(minLength: 12)
 
-            if case .failed = viewModel.playerPhase {
-                Button("重試") {
+            if showsRetryButton {
+                Button {
                     viewModel.retryCurrentStation()
+                } label: {
+                    Label("重試", systemImage: "arrow.clockwise")
+                        .font(.body.weight(.semibold))
+                        .labelStyle(.titleAndIcon)
+                        .padding(.horizontal, 16)
+                        .padding(.vertical, 10)
+                        .foregroundStyle(.red)
+                        .background(Color.red.opacity(0.12), in: Capsule())
                 }
+                .buttonStyle(.plain)
             }
 
-            Button("設定") {
+            Button {
                 onOpenSettings()
+            } label: {
+                Label("設定", systemImage: "gearshape")
+                    .font(.body.weight(.medium))
+                    .labelStyle(.titleAndIcon)
+                    .padding(.horizontal, 16)
+                    .padding(.vertical, 10)
+                    .background(Color.primary.opacity(0.06), in: Capsule())
             }
-            .controlSize(.large)
+            .buttonStyle(.plain)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 16)
@@ -175,6 +191,14 @@ struct PlayerBarView: View {
             return .green
         case .failed:
             return .red
+        }
+    }
+
+    private var showsRetryButton: Bool {
+        if case .failed = viewModel.playerPhase {
+            true
+        } else {
+            false
         }
     }
 }

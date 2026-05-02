@@ -33,7 +33,7 @@ struct ContentView: View {
                 isShowingSettings = true
             }
         }
-        .frame(minWidth: 640, minHeight: 640)
+        .frame(minWidth: 520, minHeight: 640)
         .background(Color(nsColor: .windowBackgroundColor))
         .task {
             guard shouldFetchStations else { return }
@@ -52,7 +52,7 @@ extension ContentView {
             previewViewModel: .preview(),
             shouldFetchStations: false
         )
-        .frame(width: 640, height: 640)
+        .frame(width: 520, height: 640)
     }
 }
 #endif

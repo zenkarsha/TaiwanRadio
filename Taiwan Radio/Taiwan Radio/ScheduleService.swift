@@ -10,10 +10,16 @@ final class ScheduleService: ObservableObject {
         static let scheduledStopEnabled = "scheduledStopEnabled"
         static let scheduledStopTime = "scheduledStopTime"
         static let scheduledStopLastTriggered = "scheduledStopLastTriggered"
+        static let scheduledStationSwitchEnabled = "scheduledStationSwitchEnabled"
+        static let scheduledStationSwitchTime = "scheduledStationSwitchTime"
+        static let scheduledStationSwitchStationID = "scheduledStationSwitchStationID"
+        static let scheduledStationSwitchWeekdays = "scheduledStationSwitchWeekdays"
+        static let scheduledStationSwitchLastTriggered = "scheduledStationSwitchLastTriggered"
     }
 
     @Published private(set) var scheduledPlaySettings: ScheduledPlaySettings
     @Published private(set) var scheduledStopSettings: ScheduledStopSettings
+    @Published private(set) var scheduledStationSwitchSettings: ScheduledStationSwitchSettings
 
     private let defaults: UserDefaults
     private let calendar = Calendar.current
@@ -31,10 +37,21 @@ final class ScheduleService: ObservableObject {
             isEnabled: defaults.bool(forKey: DefaultsKey.scheduledStopEnabled),
             time: defaults.object(forKey: DefaultsKey.scheduledStopTime) as? Date ?? defaultTime
         )
+        scheduledStationSwitchSettings = ScheduledStationSwitchSettings(
+            isEnabled: defaults.bool(forKey: DefaultsKey.scheduledStationSwitchEnabled),
+            time: defaults.object(forKey: DefaultsKey.scheduledStationSwitchTime) as? Date ?? defaultTime,
+            stationID: defaults.string(forKey: DefaultsKey.scheduledStationSwitchStationID),
+            weekdays: Self.storedWeekdays(from: defaults.array(forKey: DefaultsKey.scheduledStationSwitchWeekdays) as? [Int])
+        )
     }
 
     func scheduledPlayStation(from stations: [RadioStation]) -> RadioStation? {
         guard let stationID = scheduledPlaySettings.stationID else { return nil }
+        return stations.first(where: { $0.id == stationID })
+    }
+
+    func scheduledStationSwitchStation(from stations: [RadioStation]) -> RadioStation? {
+        guard let stationID = scheduledStationSwitchSettings.stationID else { return nil }
         return stations.first(where: { $0.id == stationID })
     }
 
@@ -70,6 +87,40 @@ final class ScheduleService: ObservableObject {
         persistScheduledStopSettings()
     }
 
+    func updateScheduledStationSwitchEnabled(_ isEnabled: Bool) {
+        if isEnabled, scheduledStationSwitchSettings.stationID == nil || scheduledStationSwitchSettings.weekdays.isEmpty {
+            scheduledStationSwitchSettings.isEnabled = false
+        } else {
+            scheduledStationSwitchSettings.isEnabled = isEnabled
+        }
+        persistScheduledStationSwitchSettings()
+    }
+
+    func updateScheduledStationSwitchTime(_ time: Date) {
+        scheduledStationSwitchSettings.time = normalizedTime(time)
+        persistScheduledStationSwitchSettings()
+    }
+
+    func updateScheduledStationSwitchStation(_ station: RadioStation?) {
+        scheduledStationSwitchSettings.stationID = station?.id
+        if station == nil {
+            scheduledStationSwitchSettings.isEnabled = false
+        }
+        persistScheduledStationSwitchSettings()
+    }
+
+    func toggleScheduledStationSwitchWeekday(_ weekday: ScheduledWeekday) {
+        if scheduledStationSwitchSettings.weekdays.contains(weekday) {
+            scheduledStationSwitchSettings.weekdays.remove(weekday)
+        } else {
+            scheduledStationSwitchSettings.weekdays.insert(weekday)
+        }
+        if scheduledStationSwitchSettings.weekdays.isEmpty {
+            scheduledStationSwitchSettings.isEnabled = false
+        }
+        persistScheduledStationSwitchSettings()
+    }
+
     func sanitizeSchedules(using stations: [RadioStation]) {
         if let stationID = scheduledPlaySettings.stationID,
            !stations.contains(where: { $0.id == stationID }) {
@@ -77,12 +128,20 @@ final class ScheduleService: ObservableObject {
             scheduledPlaySettings.isEnabled = false
             persistScheduledPlaySettings()
         }
+
+        if let stationID = scheduledStationSwitchSettings.stationID,
+           !stations.contains(where: { $0.id == stationID }) {
+            scheduledStationSwitchSettings.stationID = nil
+            scheduledStationSwitchSettings.isEnabled = false
+            persistScheduledStationSwitchSettings()
+        }
     }
 
     func processSchedules(
         at now: Date,
         stations: [RadioStation],
         onPlay: (RadioStation) -> Void,
+        onSwitchStation: (RadioStation) -> Void,
         onStop: () -> Void
     ) {
         let currentMinute = minuteIdentifier(for: now)
@@ -94,6 +153,14 @@ final class ScheduleService: ObservableObject {
             defaults.set(currentMinute, forKey: DefaultsKey.scheduledPlayLastTriggered)
         }
 
+        if scheduledStationSwitchSettings.isEnabled,
+           scheduledStationSwitchSettings.weekdays.contains(weekday(for: now)),
+           let station = scheduledStationSwitchStation(from: stations),
+           shouldTrigger(time: scheduledStationSwitchSettings.time, now: now, lastTriggeredKey: DefaultsKey.scheduledStationSwitchLastTriggered, currentMinute: currentMinute) {
+            onSwitchStation(station)
+            defaults.set(currentMinute, forKey: DefaultsKey.scheduledStationSwitchLastTriggered)
+        }
+
         if scheduledStopSettings.isEnabled,
            shouldTrigger(time: scheduledStopSettings.time, now: now, lastTriggeredKey: DefaultsKey.scheduledStopLastTriggered, currentMinute: currentMinute) {
             onStop()
@@ -101,9 +168,10 @@ final class ScheduleService: ObservableObject {
         }
     }
 
-    func previewConfigure(play: ScheduledPlaySettings, stop: ScheduledStopSettings) {
+    func previewConfigure(play: ScheduledPlaySettings, stop: ScheduledStopSettings, stationSwitch: ScheduledStationSwitchSettings) {
         scheduledPlaySettings = play
         scheduledStopSettings = stop
+        scheduledStationSwitchSettings = stationSwitch
     }
 
     private func shouldTrigger(time: Date, now: Date, lastTriggeredKey: String, currentMinute: String) -> Bool {
@@ -128,6 +196,13 @@ final class ScheduleService: ObservableObject {
         defaults.set(scheduledStopSettings.time, forKey: DefaultsKey.scheduledStopTime)
     }
 
+    private func persistScheduledStationSwitchSettings() {
+        defaults.set(scheduledStationSwitchSettings.isEnabled, forKey: DefaultsKey.scheduledStationSwitchEnabled)
+        defaults.set(scheduledStationSwitchSettings.time, forKey: DefaultsKey.scheduledStationSwitchTime)
+        defaults.set(scheduledStationSwitchSettings.stationID, forKey: DefaultsKey.scheduledStationSwitchStationID)
+        defaults.set(scheduledStationSwitchSettings.weekdays.sorted().map(\.rawValue), forKey: DefaultsKey.scheduledStationSwitchWeekdays)
+    }
+
     private func normalizedTime(_ date: Date) -> Date {
         let components = calendar.dateComponents([.hour, .minute], from: date)
         return calendar.date(from: components) ?? date
@@ -142,6 +217,18 @@ final class ScheduleService: ObservableObject {
             components.hour ?? 0,
             components.minute ?? 0
         ].map(String.init).joined(separator: "-")
+    }
+
+    private func weekday(for date: Date) -> ScheduledWeekday {
+        ScheduledWeekday(rawValue: calendar.component(.weekday, from: date)) ?? .sunday
+    }
+
+    private static func storedWeekdays(from rawValues: [Int]?) -> Set<ScheduledWeekday> {
+        guard let rawValues else {
+            return Set(ScheduledWeekday.allCases)
+        }
+
+        return Set(rawValues.compactMap(ScheduledWeekday.init(rawValue:)))
     }
 
     private static func defaultScheduleTime() -> Date {

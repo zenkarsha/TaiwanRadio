@@ -3,7 +3,7 @@ import SwiftUI
 struct SettingsView: View {
     @ObservedObject var viewModel: RadioViewModel
     @Environment(\.dismiss) private var dismiss
-    @State private var isPickingStation = false
+    @State private var stationPickerTarget: SettingsStationPickerTarget?
 
     var body: some View {
         VStack(spacing: 0) {
@@ -13,9 +13,18 @@ struct SettingsView: View {
 
                 Spacer()
 
-                Button("完成") {
+                Button {
                     dismiss()
+                } label: {
+                    Label("完成", systemImage: "checkmark")
+                        .font(.subheadline.weight(.medium))
+                        .labelStyle(.titleAndIcon)
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 7)
+                        .foregroundStyle(.white)
+                        .background(Color.accentColor, in: Capsule())
                 }
+                .buttonStyle(.plain)
             }
             .padding(.horizontal, 24)
             .padding(.top, 20)
@@ -42,7 +51,7 @@ struct SettingsView: View {
                         Text("播放電台")
                         Spacer()
                         Button {
-                            isPickingStation = true
+                            stationPickerTarget = .scheduledPlay
                         } label: {
                             VStack(alignment: .trailing, spacing: 2) {
                                 Text(viewModel.scheduledPlayStation?.displayName ?? "選擇電台")
@@ -59,6 +68,62 @@ struct SettingsView: View {
 
                     if viewModel.scheduledPlaySettings.stationID == nil {
                         Text("要先選電台，才可以開啟定時播放。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Section("定時切換電台") {
+                    Toggle("啟用", isOn: Binding(
+                        get: { viewModel.scheduledStationSwitchSettings.isEnabled },
+                        set: { viewModel.updateScheduledStationSwitchEnabled($0) }
+                    ))
+                    .disabled(
+                        viewModel.scheduledStationSwitchSettings.stationID == nil ||
+                            viewModel.scheduledStationSwitchSettings.weekdays.isEmpty
+                    )
+
+                    DatePicker(
+                        "切換時間",
+                        selection: Binding(
+                            get: { viewModel.scheduledStationSwitchSettings.time },
+                            set: { viewModel.updateScheduledStationSwitchTime($0) }
+                        ),
+                        displayedComponents: .hourAndMinute
+                    )
+
+                    WeekdaySelectionView(
+                        selectedWeekdays: viewModel.scheduledStationSwitchSettings.weekdays,
+                        onToggle: { weekday in
+                            viewModel.toggleScheduledStationSwitchWeekday(weekday)
+                        }
+                    )
+
+                    HStack {
+                        Text("切換電台")
+                        Spacer()
+                        Button {
+                            stationPickerTarget = .scheduledStationSwitch
+                        } label: {
+                            VStack(alignment: .trailing, spacing: 2) {
+                                Text(viewModel.scheduledStationSwitchStation?.displayName ?? "選擇電台")
+                                    .foregroundStyle(viewModel.scheduledStationSwitchStation == nil ? .secondary : .primary)
+                                if let station = viewModel.scheduledStationSwitchStation {
+                                    Text(station.subtitle)
+                                        .font(.caption)
+                                        .foregroundStyle(.secondary)
+                                }
+                            }
+                        }
+                        .buttonStyle(.plain)
+                    }
+
+                    if viewModel.scheduledStationSwitchSettings.stationID == nil {
+                        Text("要先選電台，才可以開啟定時切換。")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
+                    } else if viewModel.scheduledStationSwitchSettings.weekdays.isEmpty {
+                        Text("至少選一天，才可以開啟定時切換。")
                             .font(.caption)
                             .foregroundStyle(.secondary)
                     }
@@ -86,17 +151,81 @@ struct SettingsView: View {
             }
             .formStyle(.grouped)
         }
-        .frame(minWidth: 520, minHeight: 420)
-        .sheet(isPresented: $isPickingStation) {
+        .frame(minWidth: 520, minHeight: 520)
+        .sheet(item: $stationPickerTarget) { target in
             StationPickerSheet(
                 stations: viewModel.stations,
-                selectedStationID: viewModel.scheduledPlaySettings.stationID,
+                selectedStationID: selectedStationID(for: target),
                 onSelect: { station in
-                    viewModel.updateScheduledPlayStation(station)
-                    isPickingStation = false
+                    updateStation(station, for: target)
+                    stationPickerTarget = nil
                 }
             )
         }
+    }
+
+    private func selectedStationID(for target: SettingsStationPickerTarget) -> String? {
+        switch target {
+        case .scheduledPlay:
+            return viewModel.scheduledPlaySettings.stationID
+        case .scheduledStationSwitch:
+            return viewModel.scheduledStationSwitchSettings.stationID
+        }
+    }
+
+    private func updateStation(_ station: RadioStation, for target: SettingsStationPickerTarget) {
+        switch target {
+        case .scheduledPlay:
+            viewModel.updateScheduledPlayStation(station)
+        case .scheduledStationSwitch:
+            viewModel.updateScheduledStationSwitchStation(station)
+        }
+    }
+}
+
+private enum SettingsStationPickerTarget: Identifiable {
+    case scheduledPlay
+    case scheduledStationSwitch
+
+    var id: String {
+        switch self {
+        case .scheduledPlay:
+            return "scheduledPlay"
+        case .scheduledStationSwitch:
+            return "scheduledStationSwitch"
+        }
+    }
+}
+
+private struct WeekdaySelectionView: View {
+    let selectedWeekdays: Set<ScheduledWeekday>
+    let onToggle: (ScheduledWeekday) -> Void
+
+    var body: some View {
+        HStack {
+            Text("星期")
+
+            Spacer()
+
+            HStack(spacing: 4) {
+                ForEach(ScheduledWeekday.displayOrder) { weekday in
+                    Button {
+                        onToggle(weekday)
+                    } label: {
+                        Text(weekday.shortTitle)
+                            .font(.caption.weight(.medium))
+                            .frame(width: 26, height: 26)
+                            .foregroundStyle(selectedWeekdays.contains(weekday) ? .white : .primary)
+                            .background(
+                                RoundedRectangle(cornerRadius: 6, style: .continuous)
+                                    .fill(selectedWeekdays.contains(weekday) ? Color.accentColor : Color.secondary.opacity(0.12))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                }
+            }
+        }
+        .padding(.vertical, 4)
     }
 }
 

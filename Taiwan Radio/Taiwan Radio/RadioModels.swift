@@ -20,6 +20,52 @@ struct ScheduledStopSettings {
     var time: Date
 }
 
+struct ScheduledStationSwitchSettings {
+    var isEnabled: Bool
+    var time: Date
+    var stationID: String?
+    var weekdays: Set<ScheduledWeekday>
+}
+
+enum ScheduledWeekday: Int, CaseIterable, Identifiable, Comparable {
+    case sunday = 1
+    case monday = 2
+    case tuesday = 3
+    case wednesday = 4
+    case thursday = 5
+    case friday = 6
+    case saturday = 7
+
+    var id: Int { rawValue }
+
+    var shortTitle: String {
+        switch self {
+        case .monday:
+            return "一"
+        case .tuesday:
+            return "二"
+        case .wednesday:
+            return "三"
+        case .thursday:
+            return "四"
+        case .friday:
+            return "五"
+        case .saturday:
+            return "六"
+        case .sunday:
+            return "日"
+        }
+    }
+
+    static var displayOrder: [ScheduledWeekday] {
+        [.monday, .tuesday, .wednesday, .thursday, .friday, .saturday, .sunday]
+    }
+
+    static func < (lhs: ScheduledWeekday, rhs: ScheduledWeekday) -> Bool {
+        displayOrder.firstIndex(of: lhs) ?? 0 < displayOrder.firstIndex(of: rhs) ?? 0
+    }
+}
+
 struct RadioStation: Decodable, Identifiable, Equatable {
     let stationUUID: String
     let name: String

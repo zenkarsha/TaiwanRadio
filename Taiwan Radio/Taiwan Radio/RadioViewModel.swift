@@ -81,6 +81,10 @@ final class RadioViewModel: ObservableObject {
         scheduleService.scheduledStopSettings
     }
 
+    var scheduledStationSwitchSettings: ScheduledStationSwitchSettings {
+        scheduleService.scheduledStationSwitchSettings
+    }
+
     var filteredStations: [RadioStation] {
         let searchableStations = stationsForSelectedSection
 
@@ -107,6 +111,10 @@ final class RadioViewModel: ObservableObject {
 
     var scheduledPlayStation: RadioStation? {
         scheduleService.scheduledPlayStation(from: stations)
+    }
+
+    var scheduledStationSwitchStation: RadioStation? {
+        scheduleService.scheduledStationSwitchStation(from: stations)
     }
 
     func fetchStations() async {
@@ -179,6 +187,22 @@ final class RadioViewModel: ObservableObject {
         scheduleService.updateScheduledStopTime(time)
     }
 
+    func updateScheduledStationSwitchEnabled(_ isEnabled: Bool) {
+        scheduleService.updateScheduledStationSwitchEnabled(isEnabled)
+    }
+
+    func updateScheduledStationSwitchTime(_ time: Date) {
+        scheduleService.updateScheduledStationSwitchTime(time)
+    }
+
+    func updateScheduledStationSwitchStation(_ station: RadioStation?) {
+        scheduleService.updateScheduledStationSwitchStation(station)
+    }
+
+    func toggleScheduledStationSwitchWeekday(_ weekday: ScheduledWeekday) {
+        scheduleService.toggleScheduledStationSwitchWeekday(weekday)
+    }
+
     func removeRecentPlay(_ station: RadioStation) {
         libraryStore.removeRecentPlay(station)
         libraryStore.enforceSelectedSectionAvailability(hasFavorites: hasFavorites, hasRecentStations: hasRecentStations)
@@ -243,6 +267,9 @@ final class RadioViewModel: ObservableObject {
             at: now,
             stations: stations,
             onPlay: { [weak self] station in
+                self?.play(station)
+            },
+            onSwitchStation: { [weak self] station in
                 self?.play(station)
             },
             onStop: { [weak self] in
@@ -319,6 +346,12 @@ final class RadioViewModel: ObservableObject {
             stop: ScheduledStopSettings(
                 isEnabled: true,
                 time: Date()
+            ),
+            stationSwitch: ScheduledStationSwitchSettings(
+                isEnabled: true,
+                time: Date(),
+                stationID: stations[2].id,
+                weekdays: Set(ScheduledWeekday.displayOrder)
             )
         )
         return viewModel

@@ -121,12 +121,14 @@ struct Taiwan_RadioTests {
             at: now,
             stations: [station],
             onPlay: { _ in playCount += 1 },
+            onSwitchStation: { _ in },
             onStop: {}
         )
         service.processSchedules(
             at: now,
             stations: [station],
             onPlay: { _ in playCount += 1 },
+            onSwitchStation: { _ in },
             onStop: {}
         )
 
@@ -146,10 +148,75 @@ struct Taiwan_RadioTests {
             at: makeDate(year: 2026, month: 4, day: 10, hour: 23, minute: 45),
             stations: [],
             onPlay: { _ in },
+            onSwitchStation: { _ in },
             onStop: { stopCount += 1 }
         )
 
         #expect(stopCount == 1)
+    }
+
+    @Test func 定時切換電台只會在選取的星期觸發() {
+        let defaults = makeDefaults(testName: #function)
+        let service = ScheduleService(defaults: defaults)
+        let station = makeStation(id: "switch", name: "Switch", votes: 99)
+        let time = makeTime(hour: 8, minute: 10)
+
+        service.updateScheduledStationSwitchStation(station)
+        service.updateScheduledStationSwitchTime(time)
+        ScheduledWeekday.displayOrder
+            .filter { $0 != .friday }
+            .forEach { service.toggleScheduledStationSwitchWeekday($0) }
+        service.updateScheduledStationSwitchEnabled(true)
+
+        var switchCount = 0
+        service.processSchedules(
+            at: makeDate(year: 2026, month: 4, day: 10, hour: 8, minute: 10),
+            stations: [station],
+            onPlay: { _ in },
+            onSwitchStation: { _ in switchCount += 1 },
+            onStop: {}
+        )
+
+        #expect(switchCount == 1)
+    }
+
+    @Test func 定時切換電台不會在未選取的星期觸發() {
+        let defaults = makeDefaults(testName: #function)
+        let service = ScheduleService(defaults: defaults)
+        let station = makeStation(id: "switch", name: "Switch", votes: 99)
+        let time = makeTime(hour: 8, minute: 10)
+
+        service.updateScheduledStationSwitchStation(station)
+        service.updateScheduledStationSwitchTime(time)
+        ScheduledWeekday.displayOrder
+            .filter { $0 != .monday }
+            .forEach { service.toggleScheduledStationSwitchWeekday($0) }
+        service.updateScheduledStationSwitchEnabled(true)
+
+        var switchCount = 0
+        service.processSchedules(
+            at: makeDate(year: 2026, month: 4, day: 10, hour: 8, minute: 10),
+            stations: [station],
+            onPlay: { _ in },
+            onSwitchStation: { _ in switchCount += 1 },
+            onStop: {}
+        )
+
+        #expect(switchCount == 0)
+    }
+
+    @Test func 定時切換電台會記住空的星期選擇() {
+        let defaults = makeDefaults(testName: #function)
+        let service = ScheduleService(defaults: defaults)
+
+        ScheduledWeekday.displayOrder.forEach {
+            service.toggleScheduledStationSwitchWeekday($0)
+        }
+
+        let restored = ScheduleService(defaults: defaults)
+
+        #expect(restored.scheduledStationSwitchSettings.weekdays.isEmpty)
+        #expect(restored.scheduledStationSwitchSettings.isEnabled == false)
     }
 
     @Test func 定時播放選到不存在的電台會自動清空並停用() {

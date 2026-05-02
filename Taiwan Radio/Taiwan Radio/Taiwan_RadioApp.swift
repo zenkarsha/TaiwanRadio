@@ -37,7 +37,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         let hostingController = NSHostingController(rootView: contentView)
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 640, height: 640),
+            contentRect: NSRect(x: 0, y: 0, width: 520, height: 640),
             styleMask: [.titled, .closable, .miniaturizable, .resizable],
             backing: .buffered,
             defer: false
@@ -45,7 +45,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         window.title = "Taiwan Radio"
         window.center()
-        window.minSize = NSSize(width: 640, height: 640)
+        window.minSize = NSSize(width: 520, height: 640)
         window.contentViewController = hostingController
         window.isReleasedWhenClosed = false
         window.isRestorable = false

@@ -35,6 +35,7 @@ struct ContentView: View {
         }
         .frame(minWidth: 520, minHeight: 640)
         .background(Color(nsColor: .windowBackgroundColor))
+        .preferredColorScheme(.dark)
         .task {
             guard shouldFetchStations else { return }
             await viewModel.fetchStations()

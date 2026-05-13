@@ -13,6 +13,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private var window: NSWindow?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
+        NSApp.appearance = NSAppearance(named: .darkAqua)
         NSApp.setActivationPolicy(.regular)
         showMainWindow()
         NSApp.activate(ignoringOtherApps: true)
@@ -35,6 +36,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let contentView = ContentView()
         let hostingController = NSHostingController(rootView: contentView)
+        hostingController.view.appearance = NSAppearance(named: .darkAqua)
 
         let window = NSWindow(
             contentRect: NSRect(x: 0, y: 0, width: 520, height: 640),
@@ -46,6 +48,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         window.title = "Taiwan Radio"
         window.center()
         window.minSize = NSSize(width: 520, height: 640)
+        window.appearance = NSAppearance(named: .darkAqua)
         window.contentViewController = hostingController
         window.isReleasedWhenClosed = false
         window.isRestorable = false

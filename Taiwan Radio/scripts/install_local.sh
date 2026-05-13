@@ -37,7 +37,19 @@ echo "Stopping running app if needed..."
 pkill -x "Taiwan Radio" || true
 
 echo "Installing to /Applications..."
+if [[ -d "$INSTALL_PATH" ]]; then
+  /System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
+    -u "$INSTALL_PATH" 2>/dev/null || true
+  rm -rf "$INSTALL_PATH"
+fi
+
 ditto "$BUILD_APP_PATH" "$INSTALL_PATH"
+touch "$INSTALL_PATH"
+
+echo "Refreshing LaunchServices and Launchpad icon cache..."
+/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/Support/lsregister \
+  -f "$INSTALL_PATH" 2>/dev/null || true
+killall Dock 2>/dev/null || true
 
 echo "Installed:"
 echo "  $INSTALL_PATH"
